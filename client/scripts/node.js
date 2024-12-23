@@ -1,6 +1,6 @@
 class Node {
-    constructor(name, continent, data = null, controlledBy = null) {
-        this.adjacents = [];
+    constructor(name, continent, adjacents = [], controlledBy = null) {
+        this.adjacents = adjacents;
         this.name = name;
         this.continent = continent;
         this.svgElement = null;

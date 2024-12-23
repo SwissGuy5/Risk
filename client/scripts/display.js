@@ -2,21 +2,22 @@ class Display {
     constructor(room) {
         this.room = room;
 
-        this.mapSVG = document.getElementById("mapSVG");
-        this.xmlElement = this.getXmlElement();
-        this.svgElements = this.getSvgElements();
+        this.mapSVG = document.getElementById("mapSVG")
 
-        this.lastPathSelected = null;
+        // this.lastPathSelected = null;
 
-        // this.mapSVG.onload = () => {
-        this.addSvgOnClickListeners();
-        // };
+        this.mapSVG.onload = () => {
+            this.xmlElement = this.getXmlElement();
+            this.svgElements = this.getSvgElements();
+            this.addSvgOnClickListeners();
+            this.setupBtns();
+            this.room.init();
+        };
     }
 
-    
+
     // --- Init --- //
     getXmlElement() {
-        console.log(this.mapSVG);
         return this.mapSVG.contentDocument.children[0];
     }
 
@@ -35,22 +36,30 @@ class Display {
     }
 
     svgClicked(svgElement) {
-        this.lastPathSelected = this.getPathFromSvg(svgElement);
         this.room.handleSvgClicked(svgElement);
+        // this.lastPathSelected = this.getPathFromSvg(svgElement);
+        // this.modifySvgColor(svgElement.children[0], 1);
+    }
+
+    setupBtns() {
+        document.getElementById("attackBtn").addEventListener("click", (e) => {
+            this.room.handleActionBtn();
+        })
+        document.getElementById("nextPhaseBtn").addEventListener("click", (e) => {
+            this.room.handleNextPhaseBtn();
+        })
     }
 
 
     // --- Displays --- //
-    // TODO remove direct link to room object
-    displayPhase(phase) {
-        switch(phase) {
+    displayPhase(info) {
+        switch(this.room.phaseName) {
             case 'Reinforcements':
                 console.log(`Available Reinforcements: ${this.room.availableReinforcements}`);
-                this.updateSvgMapDisplay();
-                break;
-            case 'UseCards':
+                // this.updateSvgMapDisplay();
                 break;
             case 'Attack':
+                console.log(`Result: ${info.attackingNode - info.attackerLosses}(${info.attackingNode}-${info.attackerLosses}) : ${info.defendingNode - info.defenderLosses}(${info.defendingNode}-${info.defenderLosses})`);
                 break;
             case 'Fortify':
                 break;
@@ -62,10 +71,10 @@ class Display {
     // TODO partially move this over to the room object, this class should be purely display
     updateSvgMapDisplay() {
         this.room.nodeMap.forEach((node) => {
-            const player = this.room.getPlayerFromUuid(node.controlledBy);
+            const player = this.room.getPlayerFromId(node.controlledBy);
             let playerTurn = -1;
             if (player) {
-                playerTurn = this.room.getPlayerTurnFromUuid(player.uuid)
+                playerTurn = this.room.getPlayerTurnFromId(player.id)
             }
             const path = this.getSvgFromNodeName(node.name).children[0];
             this.modifySvgColor(path, playerTurn);
@@ -76,7 +85,8 @@ class Display {
         if (playerTurn == -1) {
             path.className.baseVal = 'default';
         } else {
-            if (path != this.lastPathSelected) {
+            // if (path != this.lastPathSelected) {
+            if (path != this.room.currentNode) {
                 path.className.baseVal = `player${playerTurn}`;
             } else {
                 path.className.baseVal = `player${playerTurn}Selected`;

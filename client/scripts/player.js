@@ -1,6 +1,6 @@
 class Player {
-    constructor(clientUuid, playerName = null, controlledTerritories, cards, color = 'green') {
-        this.uuid = clientUuid;
+    constructor(clientId, playerName = null, controlledTerritories = [], cards = [], color = 'green') {
+        this.id = clientId;
         this.name = playerName;
         this.controlledTerritories = controlledTerritories;
         this.cards = cards;
@@ -9,7 +9,7 @@ class Player {
 
     get jsonFormat() {
         return {
-            uuid: this.uuid,
+            id: this.id,
             name: this.playerName,
             controlledTerritories: this.controlledTerritories,
             cards: this.cards,

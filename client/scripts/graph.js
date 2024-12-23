@@ -6,28 +6,30 @@ class Graph {
     }
 
     parseJSONData(jsonMapData) {
+        // Add vertices in each continent to the nodeMap
         Object.entries(jsonMapData.continents).forEach(([continentName, continentObject]) => {
             const vertices = continentObject.vertices;
             for (let vertex in vertices) {
-                this.addVertex(vertex, continentName);
+                this.addVertex(vertex, continentName, vertices[vertex]);
             }
         })
 
-        Object.entries(jsonMapData.continents).forEach(([__, continentObject]) => {
-            const vertices = continentObject.vertices;
-            for (let vertex in vertices) {
-                const adjacentVertices = vertices[vertex];
-                adjacentVertices.forEach(adjacentVertex => this.addEdge(vertex, adjacentVertex));
-            }
-        })
+        // Once all vertices added, add adjacency using edges
+        // Object.entries(jsonMapData.continents).forEach(([__, continentObject]) => {
+        //     const vertices = continentObject.vertices;
+        //     for (let vertex in vertices) {
+        //         const adjacentVertices = vertices[vertex];
+        //         adjacentVertices.forEach(adjacentVertex => this.addEdge(vertex, adjacentVertex));
+        //     }
+        // })
     }
 
-    addVertex(nodeName, nodeContinent) {
+    addVertex(nodeName, nodeContinent, adjacents = []) {
         if (this.nodeMap.has(nodeName)) {
             return;
         }
 
-        const node = new Node(nodeName, nodeContinent);
+        const node = new Node(nodeName, nodeContinent, adjacents);
         this.nodeMap.set(nodeName, node);
     }
 
@@ -35,16 +37,20 @@ class Graph {
         return this.nodeMap.get(vertexName);
     }
 
-    addEdge(sourceNodeName, destinationNodeName) {
-        const sourceNode = this.getVertex(sourceNodeName);
-        const destinationNode = this.getVertex(destinationNodeName);
-
-        // sourceNode.addAdjacent(destinationNode);
-        // destinationNode.addAdjacent(sourceNode);
-
-        sourceNode.addAdjacent(destinationNodeName);
-        destinationNode.addAdjacent(sourceNodeName);
+    getVertices() {
+        return this.nodeMap;
     }
+
+    // addEdge(sourceNodeName, destinationNodeName) {
+    //     const sourceNode = this.getVertex(sourceNodeName);
+    //     const destinationNode = this.getVertex(destinationNodeName);
+
+    //     // sourceNode.addAdjacent(destinationNode);
+    //     // destinationNode.addAdjacent(sourceNode);
+
+    //     sourceNode.addAdjacent(destinationNodeName);
+    //     destinationNode.addAdjacent(sourceNodeName);
+    // }
 
     removeVertex(nodeToRemoveName) {
         const nodeToRemove = this.nodeMap.get(nodeToRemoveName);
@@ -65,10 +71,6 @@ class Graph {
             sourceNode.removeAdjacent(destinationNodeName);
             destinationNode.removeAdjacent(sourceNodeName);
         }
-    }
-
-    getVertices() {
-        return this.nodeMap;
     }
 
     // bfs(key) {
