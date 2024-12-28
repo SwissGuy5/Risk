@@ -17,6 +17,10 @@ object {
     /* border: 1px solid black; */
 }
 
+/* .ignore {
+    pointer-events: none;
+} */
+
 /* Button */
 #nextPhaseBtn {
     position: absolute;

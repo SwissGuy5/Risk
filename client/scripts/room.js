@@ -1,7 +1,7 @@
 class Room {
     #players = [];
     #phaseNames = {
-        0: 'Awaiting',
+        0: 'Setup',
         1: 'Reinforcements',
         2: 'Attack',
         3: 'Fortify'
@@ -10,7 +10,7 @@ class Room {
     constructor(nodeMap) {
         this.nodeMap = nodeMap;
         
-        this.turn = -1;
+        this.turn = 0;
         this.phase = 0;
         this.availableReinforcements;
         this.continentTerritoriesCount = this.getContinentTerritoriesCount();
@@ -26,35 +26,44 @@ class Room {
         this.currentNode = null;
 
         this.#players = [new Player("1", "P1"), new Player("2", "P2"), new Player("3", "P3")];
+        this.startingTroops = 50 - 5 * this.#players.length;
         this.display = new Display(this);
     }
 
     // Load rest once display has been loaded
     init() {
         this.randomiseStartingTerritories();
-        this.nextTurn();
-        console.log(`--- ${this.#phaseNames[1]} Phase ---`);
+        // this.nextTurn();
     }
 
     // --- Handle Turns --- //
     randomiseStartingTerritories() {
         let keyArray = Array.from(this.nodeMap.keys())
-        // keyArray = shuffleArray(keyArray);
+        keyArray = shuffleArray(keyArray);
         for (let i = 0; i < this.nodeMap.size; i++) {
             const node = this.nodeMap.get(keyArray[i])
             node.controlledBy = this.#players.at(i % this.#players.length).id;
             node.troops = 1;
+            this.turn += 1;
+            if (this.turn % this.#players.length == 0) {
+                this.startingTroops -= 1;
+            }
         }
 
-        // this.nodeMap.get("Peru").controlledBy = 1;
-        // this.nodeMap.get("Brazil").controlledBy = 1;
+        this.nodeMap.get("Peru").controlledBy = 1;
+        this.nodeMap.get("Brazil").controlledBy = 1;
 
         this.display.updateSvgMapDisplay();
     }
 
     nextTurn() {
+        console.log(`--- ${this.#phaseNames[1]} Phase ---`);
+
         this.turn += 1
         this.phase = 1;
+
+        this.currentNode = null;
+        this.previousNode = null;
 
         // Reinforcements
         this.availableReinforcements = this.calculateReinforcements();
@@ -93,12 +102,17 @@ class Room {
         // console.log(node, svgElement);
 
         switch(this.phaseName) {
+            case "Setup":
+                this.handleSetup(node);
+                break;
             case 'Reinforcements':
                 this.handleReinforcements(node);
                 break;
             case 'Attack':
+                this.display.updateSvgMapDisplay(true);
                 break;
             case 'Fortify':
+                this.display.updateSvgMapDisplay(true);
                 break;
             case 'ReceiveCards':
                 break;
@@ -128,19 +142,39 @@ class Room {
                 this.phase += 1;
                 this.previousNode = null;
                 this.currentNode = null;
+                console.log(`--- ${this.phaseName} Phase ---`);
                 break;
             case 'Attack':
                 // Todo: Receive card if player attacked at least once
                 this.phase += 1;
+                console.log(`--- ${this.phaseName} Phase ---`);
                 break;
             case 'Fortify':
                 this.nextTurn();
                 break;
         }
-        console.log(`--- ${this.phaseName} Phase ---`);
     }
 
     // Todo: Handle Card Bonuses
+    handleSetup(node) {
+        if (node.controlledBy != this.currentPlayer.id) {
+            console.log("Cannot reinforce a node you do not control");
+            return;
+        }
+
+        node.troops += 1;
+        this.turn += 1;
+
+        if (this.turn % this.#players.length == 0) {
+            this.startingTroops -= 1;
+        }
+        this.display.displayPhase();
+        if (this.startingTroops < 1) {
+            this.turn = -1;
+            this.nextTurn();
+        }
+    }
+
     handleReinforcements(node) {
         if (node.controlledBy != this.currentPlayer.id) {
             console.log("Cannot reinforce a node you do not control");
@@ -201,32 +235,41 @@ class Room {
         // Calculate losses
         let attackerLosses = 0;
         let defenderLosses = 0;
-        console.log(defendingDamage.length)
         for (let i = 0; i < defendingDamage.length; i++) {
-            console.log(attackingDamage[i] > defendingDamage[i]);
             if (attackingDamage[i] > defendingDamage[i]) {
                 defenderLosses += 1;
             } else {
                 attackerLosses += 1;
             }
         }
-        this.display.displayPhase({
+        let battleStats = {
+            success: false,
             attackingNode: this.previousNode.troops,
             attackerLosses: attackerLosses,
             defendingNode: this.currentNode.troops,
             defenderLosses: defenderLosses
-        })
+        }
         this.previousNode.troops -= attackingTroops;
         this.currentNode.troops -= defenderLosses;
 
         if (this.currentNode.troops < 1) {
             this.currentNode.controlledBy = this.previousNode.controlledBy;
-            this.currentNode.troops = attackingTroops - attackerLosses;
+            const resutlantTroops = attackingTroops - attackerLosses;
+            while (true) {
+                const troopsToMove = promptInt(`Troops to move (${resutlantTroops} to ${this.previousNode.troops - 1 + resutlantTroops} troops):`)
+                if (troopsToMove >= resutlantTroops && troopsToMove <= this.previousNode.troops - 1 + resutlantTroops) {
+                    this.previousNode.troops -= (troopsToMove > resutlantTroops ? troopsToMove - resutlantTroops : 0);
+                    this.currentNode.troops += troopsToMove;
+                    break;
+                }
+            }
+            this.currentNode = null;
+            this.previousNode = null;
+            battleStats.success = true;
         } else {
             this.previousNode.troops += attackingTroops - attackerLosses;
         }
-
-        this.display.updateSvgMapDisplay();
+        this.display.displayPhase(battleStats);
     }
 
     handleFortification() {
